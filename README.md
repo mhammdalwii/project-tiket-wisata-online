@@ -189,8 +189,6 @@ npm run dev
 
 # Struktur Folder Frontend
 
-Project menggunakan pendekatan **Modified Atomic Design**.
-
 ```
 resources/
 └── views/
