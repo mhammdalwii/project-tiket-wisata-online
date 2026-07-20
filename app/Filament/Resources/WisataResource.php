@@ -9,6 +9,8 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class WisataResource extends Resource
 {
@@ -149,5 +151,20 @@ class WisataResource extends Resource
             'create' => Pages\CreateWisata::route('/create'),
             'edit' => Pages\EditWisata::route('/{record}/edit'),
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user(); // <-- Ganti bagian ini
+
+        // Jika user yang login BUKAN admin, tampilkan HANYA wisata miliknya
+        if ($user && ! $user->hasRole('admin')) {
+            $query->where('pengelola_id', $user->id);
+        }
+
+        return $query;
     }
 }
