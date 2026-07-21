@@ -13,13 +13,14 @@
 
     <!-- Body Form -->
     <div class="p-6">
-        <form action="{{ route('wisata.pembayaran') }}" method="GET" id="formPemesanan">
+        <!-- Inisialisasi Alpine.js state: jumlah & hargaSatuan -->
+        <form action="{{ route('wisata.pembayaran') }}" method="GET" id="formPemesanan" 
+              x-data="{ jumlah: 2, hargaSatuan: {{ $wisata->harga }} }">
             @csrf
             
             <!-- Input Destinasi Wisata -->
             <div class="mb-4">
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Destinasi Wisata</label>
-                <!-- Dibuat readonly karena anggapannya user sudah memilih wisata dari halaman sebelumnya -->
                 <input type="text" readonly value="{{ $wisata->nama }}" 
                        class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 focus:outline-none">
             </div>
@@ -35,12 +36,15 @@
             <div class="mb-6">
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Jumlah Tiket</label>
                 <div class="flex items-center border border-gray-300 rounded-md w-32 overflow-hidden">
-                    <button type="button" id="btnMin" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold transition flex items-center justify-center border-r border-gray-300">
+                    <!-- Kurangi jumlah jika > 1 dengan Alpine @click -->
+                    <button type="button" @click="if (jumlah > 1) jumlah--" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold transition flex items-center justify-center border-r border-gray-300">
                         -
                     </button>
-                    <input type="number" id="inputJumlah" name="jumlah" value="2" min="1" readonly
+                    <!-- Binding input ke state 'jumlah' dengan x-model -->
+                    <input type="number" name="jumlah" x-model="jumlah" min="1" readonly
                            class="w-12 h-10 text-center font-semibold text-gray-800 focus:outline-none bg-white">
-                    <button type="button" id="btnPlus" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold transition flex items-center justify-center border-l border-gray-300">
+                    <!-- Tambah jumlah dengan Alpine @click -->
+                    <button type="button" @click="jumlah++" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold transition flex items-center justify-center border-l border-gray-300">
                         +
                     </button>
                 </div>
@@ -52,9 +56,10 @@
             <!-- Total Harga -->
             <div class="mb-6">
                 <p class="text-sm font-semibold text-gray-700 mb-1">Total Harga</p>
-                <p class="text-2xl font-bold text-gray-900" id="textTotal">Rp 10.000</p>
-                <!-- Hidden input untuk dikirim ke backend -->
-                <input type="hidden" name="total_harga" id="inputTotal" value="10000">
+                <!-- Render format Rupiah secara otomatis ketika 'jumlah' berubah -->
+                <p class="text-2xl font-bold text-gray-900" x-text="'Rp ' + (jumlah * hargaSatuan).toLocaleString('id-ID')"></p>
+                <!-- Binding data total harga untuk backend -->
+                <input type="hidden" name="total_harga" :value="jumlah * hargaSatuan">
             </div>
 
             <!-- Tombol Submit -->
@@ -64,46 +69,4 @@
         </form>
     </div>
 </div>
-
-<!-- Script Sederhana untuk Kalkulasi -->
- @push('scripts')
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const hargaSatuan = {{ $wisata->harga }};
-        const inputJumlah = document.getElementById('inputJumlah');
-        const textTotal = document.getElementById('textTotal');
-        const inputTotal = document.getElementById('inputTotal');
-        const btnMin = document.getElementById('btnMin');
-        const btnPlus = document.getElementById('btnPlus');
-
-        // Fungsi format Rupiah
-        function formatRupiah(angka) {
-            return 'Rp ' + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-        }
-
-        // Fungsi Update Total
-        function updateTotal() {
-            let jumlah = parseInt(inputJumlah.value);
-            let total = jumlah * hargaSatuan;
-            textTotal.textContent = formatRupiah(total);
-            inputTotal.value = total;
-        }
-
-        btnPlus.addEventListener('click', function() {
-            inputJumlah.value = parseInt(inputJumlah.value) + 1;
-            updateTotal();
-        });
-
-        btnMin.addEventListener('click', function() {
-            if (parseInt(inputJumlah.value) > 1) {
-                inputJumlah.value = parseInt(inputJumlah.value) - 1;
-                updateTotal();
-            }
-        });
-
-        // Panggil sekali saat load
-        updateTotal();
-    });
-</script>
-@endpush
 @endsection

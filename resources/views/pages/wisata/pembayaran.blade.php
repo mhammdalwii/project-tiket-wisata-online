@@ -24,7 +24,8 @@
             </div>
         </div>
 
-        <form action="{{ route('wisata.eticket') }}" method="GET" enctype="multipart/form-data">
+        <!-- Inisialisasi Alpine.js state: metode -->
+        <form action="{{ route('wisata.eticket') }}" method="GET" enctype="multipart/form-data" x-data="{ metode: 'transfer' }">
             @csrf
 
             <!-- Metode Pembayaran -->
@@ -33,19 +34,21 @@
                 
                 <div class="space-y-3">
                     <label class="flex items-center space-x-3 cursor-pointer">
-                        <input type="radio" name="metode" value="tunai" class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500" onclick="toggleBankInfo(false)">
+                        <!-- Gunakan x-model -->
+                        <input type="radio" name="metode" value="tunai" x-model="metode" class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
                         <span class="text-gray-800 text-sm">Tunai (Bayar di Loket)</span>
                     </label>
 
                     <label class="flex items-center space-x-3 cursor-pointer">
-                        <input type="radio" name="metode" value="transfer" class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500" checked onclick="toggleBankInfo(true)">
+                        <!-- Gunakan x-model -->
+                        <input type="radio" name="metode" value="transfer" x-model="metode" class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
                         <span class="text-gray-800 text-sm">Transfer Bank BRI</span>
                     </label>
                 </div>
             </div>
 
-            <!-- Detail Bank (Akan disembunyikan jika pilih tunai) -->
-            <div id="bankInfo" class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6 text-sm">
+            <!-- Detail Bank (Akan disembunyikan jika x-show false/metode bukan transfer) -->
+            <div x-show="metode === 'transfer'" x-transition class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6 text-sm">
                 <div class="grid grid-cols-3 gap-2 mb-1">
                     <div class="text-gray-600">Bank</div>
                     <div class="col-span-2 font-semibold text-gray-800">: BRI</div>
@@ -60,8 +63,8 @@
                 </div>
             </div>
 
-            <!-- Upload Bukti -->
-            <div class="mb-6" id="uploadSection">
+            <!-- Upload Bukti (Akan disembunyikan jika x-show false) -->
+            <div x-show="metode === 'transfer'" x-transition class="mb-6">
                 <h3 class="text-sm font-semibold text-gray-700 mb-2">Upload Bukti Transfer</h3>
                 <input type="file" name="bukti_transfer" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-gray-300 rounded-md p-1">
             </div>
@@ -74,22 +77,4 @@
         </form>
     </div>
 </div>
-
-@push('scripts')
-<script>
-    // Fungsi untuk menyembunyikan/menampilkan info bank dan upload bukti
-    function toggleBankInfo(isTransfer) {
-        const bankInfo = document.getElementById('bankInfo');
-        const uploadSection = document.getElementById('uploadSection');
-        
-        if (isTransfer) {
-            bankInfo.style.display = 'block';
-            uploadSection.style.display = 'block';
-        } else {
-            bankInfo.style.display = 'none';
-            uploadSection.style.display = 'none';
-        }
-    }
-</script>
-@endpush
 @endsection
