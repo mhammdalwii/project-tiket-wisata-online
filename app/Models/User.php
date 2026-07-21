@@ -2,15 +2,18 @@
 
 namespace App\Models;
 
+use Filament\Models\Contracts\FilamentUser; // <-- 1. Tambahan Impor FilamentUser
+use Filament\Panel;                         // <-- 1. Tambahan Impor Panel
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Spatie\Permission\Traits\HasRoles; // Pastikan ini ditambahkan
+use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable
+// 2. Tambahkan "implements FilamentUser" di sini
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles; // Tambahkan HasRoles di sini
+    use HasFactory, Notifiable, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -20,8 +23,8 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
-        'phone',     // Tambahan sesuai ERD
-        'username',  // Tambahan sesuai ERD
+        'phone',     // Menggunakan field Anda yang benar
+        'username',  // Menggunakan field Anda yang benar
         'password',
     ];
 
@@ -58,5 +61,12 @@ class User extends Authenticatable
     public function transaksis()
     {
         return $this->hasMany(Transaksi::class, 'user_id');
+    }
+
+    // 3. FUNGSI PENJAGA GERBANG (GATEKEEPER)
+    public function canAccessPanel(Panel $panel): bool
+    {
+        // Hanya role 'admin' dan 'pengelola' yang boleh login ke /admin
+        return $this->hasRole(['admin', 'pengelola']);
     }
 }
