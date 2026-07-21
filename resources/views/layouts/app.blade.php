@@ -8,10 +8,17 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
-<body class="bg-gray-50 text-gray-900 antialiased font-sans">
-    <main class="min-h-screen flex flex-col justify-center items-center">
+<body class="bg-gray-50 text-gray-900 antialiased font-sans flex flex-col min-h-screen">
+    
+    <!-- Navbar akan dipanggil di seluruh halaman yang menggunakan layout ini -->
+    @include('components.ui.sections.navbar')
+
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-4 py-8">
         @yield('content')
     </main>
+
+    @stack('scripts')
 </body>
 
 </html>
