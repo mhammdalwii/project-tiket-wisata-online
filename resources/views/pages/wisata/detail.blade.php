@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="max-w-5xl mx-auto mt-4 mb-10">
-    
+
     <!-- Breadcrumb (Navigasi Jejak) -->
     <nav class="text-sm mb-6 text-gray-500 flex items-center space-x-2">
         <a href="{{ route('wisata.index') }}" class="hover:text-blue-600 transition font-medium">Katalog Wisata</a>
@@ -22,10 +22,10 @@
 
     <!-- Layout Grid Utama -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-        
+
         <!-- Kolom Kiri: Detail, Deskripsi, Fasilitas -->
         <div class="md:col-span-2 space-y-8">
-            
+
             <!-- Judul & Jam Operasional -->
             <div>
                 <h1 class="text-3xl font-extrabold text-gray-900 mb-3">{{ $wisata->nama }}</h1>
@@ -50,12 +50,12 @@
                 <h3 class="text-xl font-bold text-gray-800 mb-4 border-b border-gray-100 pb-2">Fasilitas Tersedia</h3>
                 <div class="flex flex-wrap gap-2">
                     @foreach ($wisata->fasilitas as $fasilitas)
-                        <span class="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shadow-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                            </svg>
-                            {{ $fasilitas }}
-                        </span>
+                    <span class="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                        </svg>
+                        {{ $fasilitas }}
+                    </span>
                     @endforeach
                 </div>
             </div>
@@ -71,11 +71,19 @@
                     <p class="text-gray-500 font-medium mb-1">/orang</p>
                 </div>
 
-                <!-- Arahkan tombol ini ke halaman pemesanan tiket -->
+                <!-- Cek apakah pengguna sudah login -->
+                @auth
+                <!-- Jika SUDAH login, arahkan ke rute pemesanan -->
                 <a href="{{ route('wisata.pesan', $wisata->id) }}" class="block w-full bg-blue-700 text-white text-center font-bold py-3.5 px-4 rounded-xl hover:bg-blue-800 transition shadow-md hover:shadow-lg">
                     Pesan Tiket Sekarang
                 </a>
-                
+                @else
+                <!-- Jika BELUM login (Guest), arahkan langsung ke halaman login -->
+                <a href="{{ route('login') }}" class="block w-full bg-blue-700 text-white text-center font-bold py-3.5 px-4 rounded-xl hover:bg-blue-800 transition shadow-md hover:shadow-lg">
+                    Pesan Tiket Sekarang
+                </a>
+                @endauth
+
                 <div class="mt-4 flex items-center justify-center gap-2 text-xs font-semibold text-gray-500">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />

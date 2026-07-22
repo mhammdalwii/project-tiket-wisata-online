@@ -2,8 +2,7 @@
 
 @section('content')
 <div class="max-w-md mx-auto bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden mt-8">
-    
-    <!-- Header Form -->
+
     <div class="bg-blue-50 px-6 py-4 border-b border-gray-200 flex items-center space-x-3">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -11,60 +10,60 @@
         <h2 class="text-lg font-bold text-gray-800">PEMESANAN TIKET</h2>
     </div>
 
-    <!-- Body Form -->
     <div class="p-6">
-        <!-- Inisialisasi Alpine.js state: jumlah & hargaSatuan -->
-        <form action="{{ route('wisata.pembayaran') }}" method="GET" id="formPemesanan" 
-              x-data="{ jumlah: 2, hargaSatuan: {{ $wisata->harga }} }">
+        <!-- Action diubah ke rute POST (sementara kita beri nama rute imajiner yang nanti dibuat di backend) -->
+        <form action="{{ route('wisata.pesan.store') }}" method="POST" id="formPemesanan" wire:navigate="false" data-turbo="false"
+            x-data="{ jumlah: 2, hargaSatuan: {{ $wisata->harga_tiket ?? $wisata->harga }} }">
             @csrf
-            
-            <!-- Input Destinasi Wisata -->
+
+            <!-- Hidden Input untuk wisata_id -->
+            <input type="hidden" name="wisata_id" value="{{ $wisata->id }}">
+
             <div class="mb-4">
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Destinasi Wisata</label>
-                <input type="text" readonly value="{{ $wisata->nama }}" 
-                       class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 focus:outline-none">
+                <!-- Disesuaikan dengan nama kolom nama_wisata -->
+                <input type="text" readonly value="{{ $wisata->nama_wisata ?? $wisata->nama }}"
+                    class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 focus:outline-none">
             </div>
 
-            <!-- Input Tanggal Kunjungan -->
-            <div class="mb-4">
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Tanggal Kunjungan</label>
-                <input type="date" name="tanggal" required
-                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-
-            <!-- Input Jumlah Tiket -->
-            <div class="mb-6">
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Jumlah Tiket</label>
-                <div class="flex items-center border border-gray-300 rounded-md w-32 overflow-hidden">
-                    <!-- Kurangi jumlah jika > 1 dengan Alpine @click -->
-                    <button type="button" @click="if (jumlah > 1) jumlah--" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold transition flex items-center justify-center border-r border-gray-300">
-                        -
-                    </button>
-                    <!-- Binding input ke state 'jumlah' dengan x-model -->
-                    <input type="number" name="jumlah" x-model="jumlah" min="1" readonly
-                           class="w-12 h-10 text-center font-semibold text-gray-800 focus:outline-none bg-white">
-                    <!-- Tambah jumlah dengan Alpine @click -->
-                    <button type="button" @click="jumlah++" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold transition flex items-center justify-center border-l border-gray-300">
-                        +
-                    </button>
+            <!-- Input Tanggal & Waktu Kunjungan (Grid) -->
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Tanggal</label>
+                    <!-- name disesuaikan dengan kolom DB -->
+                    <input type="date" name="tanggal_kunjungan" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Waktu</label>
+                    <!-- Tambahan input waktu karena di DB ada kolom waktu_kunjungan -->
+                    <input type="time" name="waktu_kunjungan" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
             </div>
 
-            <!-- Garis Putus-putus -->
+            <div class="mb-6">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Jumlah Tiket</label>
+                <div class="flex items-center border border-gray-300 rounded-md w-32 overflow-hidden">
+                    <button type="button" @click="if (jumlah > 1) jumlah--" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold transition flex items-center justify-center border-r border-gray-300">-</button>
+                    <!-- name disesuaikan dengan kolom DB -->
+                    <input type="number" name="jumlah_tiket" x-model="jumlah" min="1" readonly
+                        class="w-12 h-10 text-center font-semibold text-gray-800 focus:outline-none bg-white">
+                    <button type="button" @click="jumlah++" class="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold transition flex items-center justify-center border-l border-gray-300">+</button>
+                </div>
+            </div>
+
             <div class="border-t-2 border-dashed border-gray-200 my-6"></div>
 
-            <!-- Total Harga -->
             <div class="mb-6">
                 <p class="text-sm font-semibold text-gray-700 mb-1">Total Harga</p>
-                <!-- Render format Rupiah secara otomatis ketika 'jumlah' berubah -->
                 <p class="text-2xl font-bold text-gray-900" x-text="'Rp ' + (jumlah * hargaSatuan).toLocaleString('id-ID')"></p>
-                <!-- Binding data total harga untuk backend -->
+                <!-- name disesuaikan dengan kolom DB -->
                 <input type="hidden" name="total_harga" :value="jumlah * hargaSatuan">
             </div>
 
-            <!-- Tombol Submit -->
             <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-md hover:bg-blue-700 transition">
-                PESAN SEKARANG
+                LANJUT KE PEMBAYARAN
             </button>
         </form>
     </div>
