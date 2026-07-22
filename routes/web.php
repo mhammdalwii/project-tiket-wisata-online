@@ -2,39 +2,36 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Front\WisataController;
+use App\Http\Controllers\Front\AuthController;
 
-Route::get('/', function () {
-    return view('pages.home');
-});
-
+// === RUTE PUBLIK (BISA DIAKSES SIAPA SAJA) ===
+Route::get('/', [WisataController::class, 'home'])->name('home');
 Route::get('/wisata', [WisataController::class, 'index'])->name('wisata.index');
-
-// Menambahkan route untuk form pemesanan
-Route::get('/pesan/{id?}', [WisataController::class, 'create'])->name('wisata.pesan');
-Route::get('/pembayaran', [WisataController::class, 'pembayaran'])->name('wisata.pembayaran');
-Route::get('/e-ticket', [WisataController::class, 'eticket'])->name('wisata.eticket');
-
-// Route untuk Auth Wisatawan
-Route::get('/login', function () {
-    return view('pages.auth.login');
-})->name('login');
-
-Route::get('/register', function () {
-    // Placeholder untuk halaman registrasi selanjutnya
-    return view('pages.auth.register'); 
-})->name('register');
-
-// Route untuk halaman "Tiket Saya"
-Route::get('/tiket-saya', [WisataController::class, 'tiketSaya'])->name('wisata.tiket-saya');
-
-// Route untuk halaman "Profil"
-Route::get('/profil', [WisataController::class, 'profil'])->name('wisata.profil');
-
-// Route Katalog Wisata
-Route::get('/wisata', [WisataController::class, 'index'])->name('wisata.index');
-
-// Route Detail Wisata
 Route::get('/wisata/{id}', [WisataController::class, 'show'])->name('wisata.show');
 
-// Route Form Pemesanan
-Route::get('/pesan/{id?}', [WisataController::class, 'create'])->name('wisata.pesan');
+// === RUTE GUEST (HANYA BISA DIAKSES JIKA BELUM LOGIN) ===
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [AuthController::class, 'login'])->name('login');
+    Route::post('/login', [AuthController::class, 'authenticate'])->name('login.process');
+    Route::get('/register', [AuthController::class, 'register'])->name('register');
+    Route::post('/register', [AuthController::class, 'store'])->name('register.process');
+});
+
+// === RUTE PROTECTED (WAJIB LOGIN) ===
+Route::middleware('auth')->group(function () {
+
+    // Halaman Profil User
+    Route::put('/profil/update', [WisataController::class, 'updateProfil'])->name('wisata.profil.update');
+
+    // Proses Logout
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+    // Alur Pemesanan (Akan diarahkan ke login jika belum masuk)
+    Route::get('/pesan/{id?}', [WisataController::class, 'create'])->name('wisata.pesan');
+    Route::get('/pembayaran', [WisataController::class, 'pembayaran'])->name('wisata.pembayaran');
+    Route::get('/e-ticket', [WisataController::class, 'eticket'])->name('wisata.eticket');
+
+    // Menu User
+    Route::get('/tiket-saya', [WisataController::class, 'tiketSaya'])->name('wisata.tiket-saya');
+    Route::get('/profil', [WisataController::class, 'profil'])->name('wisata.profil');
+});

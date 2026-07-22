@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="max-w-2xl mx-auto mt-8">
-    
+
     <!-- Header E-Ticket -->
     <div class="flex items-center space-x-3 mb-6">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -24,7 +24,7 @@
 
     <!-- Tiket Card -->
     <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6 mb-8 flex flex-col md:flex-row gap-6">
-        
+
         <!-- Detail Info -->
         <div class="flex-1 space-y-4 text-sm">
             <div class="grid grid-cols-2 gap-2">
