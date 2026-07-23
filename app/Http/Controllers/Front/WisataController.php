@@ -6,14 +6,26 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class WisataController extends Controller
 {
     // 0. Halaman Beranda (Dinamis dari Database)
     public function home()
     {
-        // Mengambil 4 data wisata terbaru dari database
-        $wisatas = \App\Models\Wisata::latest()->take(4)->get();
+        $today = Carbon::today()->toDateString();
+
+        // Mengambil 4 data wisata terbaru beserta jumlah tiket yang sudah terjual hari ini
+        $wisatas = \App\Models\Wisata::withSum(['transaksis' => function ($query) use ($today) {
+            $query->where('tanggal_kunjungan', $today)
+                ->where('status_pembayaran', '!=', 'batal'); // Hitung semua kecuali yang batal
+        }], 'jumlah_tiket')->latest()->take(4)->get();
+
+        // Menyisipkan properti sisa_tiket ke setiap data
+        foreach ($wisatas as $wisata) {
+            $terjual = $wisata->transaksis_sum_jumlah_tiket ?? 0;
+            $wisata->sisa_tiket = $wisata->kapasitas - $terjual;
+        }
 
         return view('pages.home', compact('wisatas'));
     }
@@ -21,21 +33,26 @@ class WisataController extends Controller
     // 1. Halaman Katalog Wisata (Beranda/Wisata)
     public function index(Request $request)
     {
-        // Mulai membangun query ke tabel wisatas
-        $query = \App\Models\Wisata::query();
+        $today = Carbon::today()->toDateString();
 
-        // Jika ada parameter 'search' di URL dan isinya tidak kosong
+        // Mulai membangun query ke tabel wisatas beserta sum tiket terjual hari ini
+        $query = \App\Models\Wisata::withSum(['transaksis' => function ($query) use ($today) {
+            $query->where('tanggal_kunjungan', $today)
+                ->where('status_pembayaran', '!=', 'batal');
+        }], 'jumlah_tiket');
+
         if ($request->has('search') && $request->search != '') {
-            // Filter berdasarkan kolom nama_wisata (case-insensitive)
             $query->where('nama_wisata', 'like', '%' . $request->search . '%');
         }
 
-        // Ambil data terbaru. Kita gunakan paginate(8) agar jika datanya 
-        // sudah ratusan, halamannya otomatis terbagi rapi
         $daftar_wisata = $query->latest()->paginate(8);
-
-        // Tambahkan parameter pencarian ke fungsi pagination agar tidak hilang saat pindah halaman
         $daftar_wisata->appends($request->all());
+
+        // Menyisipkan properti sisa_tiket
+        foreach ($daftar_wisata as $wisata) {
+            $terjual = $wisata->transaksis_sum_jumlah_tiket ?? 0;
+            $wisata->sisa_tiket = $wisata->kapasitas - $terjual;
+        }
 
         return view('pages.wisata.index', compact('daftar_wisata'));
     }
@@ -43,59 +60,109 @@ class WisataController extends Controller
     // Fungsi Halaman Detail Wisata
     public function show($id)
     {
-        // Dummy data detail wisata
-        $wisata = (object) [
-            'id' => $id,
-            'nama' => 'Wisata Bahuluang',
-            'deskripsi' => 'Nikmati keindahan alam yang asri dan udara sejuk di Wisata Bahuluang. Tempat wisata ini dikelola langsung oleh Pokdarwis setempat, menyajikan pemandangan bahari yang memukau dan kebudayaan lokal yang khas. Cocok untuk liburan santai bersama keluarga dan teman-teman.',
-            'harga' => 10000,
-            'jam_operasional' => '08:00 - 17:00 WITA',
-            'fasilitas' => ['Area Parkir', 'Toilet Umum', 'Gazebo', 'Tempat Makan', 'Spot Foto'],
-        ];
+        $today = Carbon::today()->toDateString();
+
+        // Mencari wisata beserta fasilitas dan sum tiket terjual hari ini
+        $wisata = \App\Models\Wisata::with('fasilitas')
+            ->withSum(['transaksis' => function ($query) use ($today) {
+                $query->where('tanggal_kunjungan', $today)
+                    ->where('status_pembayaran', '!=', 'batal');
+            }], 'jumlah_tiket')
+            ->findOrFail($id);
+
+        $terjual = $wisata->transaksis_sum_jumlah_tiket ?? 0;
+        $wisata->sisa_tiket = $wisata->kapasitas - $terjual;
 
         return view('pages.wisata.detail', compact('wisata'));
     }
 
     // 2. Halaman Form Pemesanan Tiket
-    public function create($id = null)
+    public function create($id)
     {
-        $wisata = (object) [
-            'id' => $id ?? 1,
-            'nama' => 'Wisata Bahuluang',
-            'harga' => 10000
-        ];
+        // Mengambil data wisata asli dari database
+        $wisata = \App\Models\Wisata::findOrFail($id);
 
         return view('pages.wisata.pesan', compact('wisata'));
     }
 
-    // 3. Halaman Pembayaran
-    public function pembayaran()
+    // Memproses Data Pemesanan ke Database
+    public function storePesan(Request $request)
     {
-        $pesanan = (object) [
-            'kode_booking' => 'BK001',
-            'total' => 10000
-        ];
+        $request->validate([
+            'wisata_id' => 'required|exists:wisatas,id',
+            'tanggal_kunjungan' => 'required|date',
+            'waktu_kunjungan' => 'required',
+            'jumlah_tiket' => 'required|integer|min:1',
+            'total_harga' => 'required|numeric',
+        ]);
+
+        // Menyimpan transaksi dengan status awal
+        $transaksi = \App\Models\Transaksi::create([
+            'kode_booking' => 'BK-' . strtoupper(uniqid()),
+            'user_id' => auth()->id(),
+            'wisata_id' => $request->wisata_id,
+            'tanggal_kunjungan' => $request->tanggal_kunjungan,
+            'waktu_kunjungan' => $request->waktu_kunjungan, // Opsional jika ada di migrasi
+            'jumlah_tiket' => $request->jumlah_tiket,
+            'total_harga' => $request->total_harga,
+            'status_pembayaran' => 'menunggu_pembayaran',
+        ]);
+
+        // Arahkan ke halaman pembayaran membawa kode booking
+        return redirect()->route('wisata.pembayaran', $transaksi->kode_booking);
+    }
+
+    // 3. Halaman Pembayaran
+    public function pembayaran($kode_booking)
+    {
+        // Cari pesanan milik user yang sedang login
+        $pesanan = \App\Models\Transaksi::where('kode_booking', $kode_booking)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
 
         return view('pages.wisata.pembayaran', compact('pesanan'));
     }
 
-    // 4. Halaman E-Ticket (Sukses Pembayaran)
-    public function eticket()
+    // Memproses Upload Bukti Pembayaran
+    public function storePembayaran(Request $request)
     {
-        $tiket = (object) [
-            'kode_booking' => 'BK001',
-            'nama' => 'Rosanti',
-            'destinasi' => 'Wisata Bahuluang',
-            'tanggal' => '20 Agustus 2026',
-            'waktu' => '08.00 WIB',
-            'jumlah' => 2,
-            'total' => 10000
-        ];
+        $request->validate([
+            'kode_booking' => 'required|exists:transaksis,kode_booking',
+            'metode_pembayaran' => 'required|in:Tunai,Transfer Bank BRI',
+            'bukti_transfer' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
+        ]);
+
+        $transaksi = \App\Models\Transaksi::where('kode_booking', $request->kode_booking)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
+
+        // Update metode dan ubah status agar muncul di panel Admin untuk divalidasi
+        $transaksi->update([
+            'metode_pembayaran' => $request->metode_pembayaran,
+            'status_pembayaran' => 'menunggu_validasi'
+        ]);
+
+        // Upload ke Spatie Media Library menggunakan koleksi 'bukti_transfer' sesuai buatan Admin
+        if ($request->hasFile('bukti_transfer') && $request->metode_pembayaran === 'Transfer Bank BRI') {
+            $transaksi->addMediaFromRequest('bukti_transfer')->toMediaCollection('bukti_transfer');
+        }
+
+        return redirect()->route('wisata.tiket-saya')->with('success', 'Pesanan berhasil, silakan tunggu konfirmasi.');
+    }
+
+    // 4. Halaman Cetak / Lihat E-Ticket
+    public function cetakTiket($id)
+    {
+        $tiket = \App\Models\Transaksi::with(['wisata', 'user'])->findOrFail($id);
+
+        // Keamanan: Pastikan hanya pemilik tiket atau Admin yang bisa melihatnya
+        if (auth()->id() !== $tiket->user_id && !auth()->user()->hasRole('admin')) {
+            abort(403, 'Anda tidak memiliki akses ke tiket ini.');
+        }
 
         return view('pages.wisata.eticket', compact('tiket'));
     }
 
-    // 5. Halaman Riwayat / Tiket Saya
     // 5. Halaman Riwayat / Tiket Saya
     public function tiketSaya()
     {

@@ -65,7 +65,7 @@
                     <!-- Tombol Aksi -->
                     @if ($tiket->status_pembayaran === 'lunas')
                     <!-- Bypass pencegat Livewire SPA jika user mengklik tombol ini -->
-                    <a href="{{ route('wisata.eticket') }}" wire:navigate="false" data-turbo="false" class="text-sm bg-blue-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-700 transition">
+                    <a href="{{ route('cetak.tiket', $tiket->id) }}" target="_blank" wire:navigate="false" data-turbo="false" class="text-sm bg-blue-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-700 transition">
                         Lihat E-Ticket
                     </a>
                     @elseif (in_array($tiket->status_pembayaran, ['menunggu_pembayaran', 'menunggu_validasi']))

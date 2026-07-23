@@ -27,9 +27,15 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     // Alur Pemesanan (Akan diarahkan ke login jika belum masuk)
-    Route::get('/pesan/{id?}', [WisataController::class, 'create'])->name('wisata.pesan');
-    Route::get('/pembayaran', [WisataController::class, 'pembayaran'])->name('wisata.pembayaran');
-    Route::get('/e-ticket', [WisataController::class, 'eticket'])->name('wisata.eticket');
+    Route::get('/pesan/{id}', [WisataController::class, 'create'])->name('wisata.pesan');
+    Route::post('/pesan/store', [WisataController::class, 'storePesan'])->name('wisata.pesan.store');
+    
+    // Alur Pembayaran (Menggunakan kode booking)
+    Route::get('/pembayaran/{kode_booking}', [WisataController::class, 'pembayaran'])->name('wisata.pembayaran');
+    Route::post('/pembayaran/store', [WisataController::class, 'storePembayaran'])->name('wisata.pembayaran.store');
+
+    // E-Ticket (Dipakai oleh Pengunjung dan Admin)
+    Route::get('/cetak-tiket/{id}', [WisataController::class, 'cetakTiket'])->name('cetak.tiket');
 
     // Menu User
     Route::get('/tiket-saya', [WisataController::class, 'tiketSaya'])->name('wisata.tiket-saya');
