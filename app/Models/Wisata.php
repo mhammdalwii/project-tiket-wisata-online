@@ -23,4 +23,10 @@ class Wisata extends Model implements HasMedia
     {
         return $this->hasMany(Fasilitas::class);
     }
+
+    // Relasi ke Transaksi (Pesanan Tiket)
+    public function transaksis()
+    {
+        return $this->hasMany(Transaksi::class);
+    }
 }
