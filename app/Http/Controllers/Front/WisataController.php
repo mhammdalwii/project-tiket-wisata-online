@@ -85,7 +85,7 @@ class WisataController extends Controller
         return view('pages.wisata.pesan', compact('wisata'));
     }
 
-    // Memproses Data Pemesanan ke Database
+    // Memproses Data Pemesanan ke Database (Dengan Logika Anti-Overbooking)
     public function storePesan(Request $request)
     {
         $request->validate([
@@ -96,21 +96,44 @@ class WisataController extends Controller
             'total_harga' => 'required|numeric',
         ]);
 
-        // Menyimpan transaksi dengan status awal
+        // 1. Ambil data wisata untuk mengecek kapasitas aslinya
+        $wisata = \App\Models\Wisata::findOrFail($request->wisata_id);
+
+        // 2. Hitung jumlah tiket yang SUDAH terjual di tanggal tersebut
+        $tiketTerjualHariIni = \App\Models\Transaksi::where('wisata_id', $wisata->id)
+            ->whereDate('tanggal_kunjungan', $request->tanggal_kunjungan)
+            ->where('status_pembayaran', '!=', 'batal') // Abaikan yang batal
+            ->sum('jumlah_tiket');
+
+        // 3. Hitung sisa tiket
+        $sisaTiket = $wisata->kapasitas - $tiketTerjualHariIni;
+
+        // 4. VALIDASI: Tolak jika pesanan melebihi sisa tiket
+        if ($request->jumlah_tiket > $sisaTiket) {
+            $tanggalFormat = Carbon::parse($request->tanggal_kunjungan)->translatedFormat('d F Y');
+
+            if ($sisaTiket <= 0) {
+                return back()->with('error', "Maaf, tiket untuk tanggal {$tanggalFormat} sudah habis terjual. Silakan pilih tanggal lain.");
+            }
+
+            return back()->with('error', "Maaf, tiket untuk tanggal {$tanggalFormat} hanya tersisa {$sisaTiket} tiket. Silakan kurangi jumlah pesanan Anda.");
+        }
+
+        // 5. Jika kuota aman, simpan transaksi (Menggunakan Auth::id() agar VS Code tidak error)
         $transaksi = \App\Models\Transaksi::create([
             'kode_booking' => 'BK-' . strtoupper(uniqid()),
             'user_id' => auth()->id(),
             'wisata_id' => $request->wisata_id,
             'tanggal_kunjungan' => $request->tanggal_kunjungan,
-            'waktu_kunjungan' => $request->waktu_kunjungan, // Opsional jika ada di migrasi
+            'waktu_kunjungan' => $request->waktu_kunjungan,
             'jumlah_tiket' => $request->jumlah_tiket,
             'total_harga' => $request->total_harga,
             'status_pembayaran' => 'menunggu_pembayaran',
         ]);
 
-        // Arahkan ke halaman pembayaran membawa kode booking
         return redirect()->route('wisata.pembayaran', $transaksi->kode_booking);
     }
+
 
     // 3. Halaman Pembayaran
     public function pembayaran($kode_booking)
