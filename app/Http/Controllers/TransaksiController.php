@@ -10,63 +10,72 @@ use Illuminate\Support\Str;
 
 class TransaksiController extends Controller
 {
-    // 1. Menampilkan Form Checkout
+    // 1. Tampilkan form pilih jumlah tiket
     public function create($wisata_id)
     {
-        // Pastikan wisata yang akan dipesan itu ada
         $wisata = Wisata::findOrFail($wisata_id);
-
-        // Tampilkan view form checkout ke wisatawan
-        return view('transaksi.checkout', compact('wisata'));
+        return view('pages.wisata.pesan', compact('wisata'));
     }
 
-    // 2. Memproses Data Checkout & Bukti Transfer
-    public function store(Request $request, $wisata_id)
+    // 2. Simpan pesanan & arahkan ke halaman pembayaran
+    public function storePesan(Request $request, $wisata_id)
     {
-        // Validasi input dari wisatawan
         $request->validate([
-            'tanggal_kunjungan' => ['required', 'date', 'after_or_equal:today'],
+            'tanggal_kunjungan' => ['required', 'date'],
             'jumlah_tiket'      => ['required', 'integer', 'min:1'],
-            'bukti_transfer'    => ['required', 'image', 'mimes:jpeg,png,jpg', 'max:2048'], // Maksimal 2MB
         ]);
 
         $wisata = Wisata::findOrFail($wisata_id);
+        $kode_booking = 'BK' . strtoupper(Str::random(6));
 
-        // Hitung total harga otomatis (Jumlah Tiket x Harga Satuan)
-        $total_harga = $wisata->harga_tiket * $request->jumlah_tiket;
-
-        // Simpan foto bukti transfer ke folder public/storage/bukti_transfer
-        $pathBukti = $request->file('bukti_transfer')->store('bukti_transfer', 'public');
-
-        // Buat kode booking unik (Contoh: TRX-A1B2C3D4)
-        $kode_booking = 'TRX-' . strtoupper(Str::random(8));
-
-        // Simpan data transaksi ke database
         Transaksi::create([
             'user_id'           => Auth::id(),
             'wisata_id'         => $wisata->id,
             'kode_booking'      => $kode_booking,
             'tanggal_kunjungan' => $request->tanggal_kunjungan,
             'jumlah_tiket'      => $request->jumlah_tiket,
-            'total_harga'       => $total_harga,
-            'bukti_transfer'    => $pathBukti,
-            'status'            => 'menunggu_validasi', // Status default
+            'total_harga'       => $request->jumlah_tiket * $wisata->harga_tiket,
+            'status'            => 'menunggu_pembayaran', // Status awal
         ]);
 
-        // Arahkan wisatawan ke halaman riwayat pesanan dengan pesan sukses
-        return redirect()->route('riwayat.index')->with('success', 'Pemesanan berhasil! Silakan tunggu validasi dari Admin.');
+        return redirect()->route('wisata.pembayaran', $kode_booking);
     }
 
-    // 3. Menampilkan Dasbor Wisatawan (Riwayat Pesanan)
+    // 3. Tampilkan halaman upload bukti transfer
+    public function pembayaran($kode_booking)
+    {
+        $pesanan = Transaksi::where('kode_booking', $kode_booking)->firstOrFail();
+        return view('pages.wisata.pembayaran', compact('pesanan'));
+    }
+
+    // 4. Simpan foto bukti transfer
+    public function storePembayaran(Request $request)
+    {
+        $pesanan = Transaksi::where('kode_booking', $request->kode_booking)->firstOrFail();
+
+        if ($request->hasFile('bukti_transfer')) {
+            $pathBukti = $request->file('bukti_transfer')->store('bukti_transfer', 'public');
+
+            $pesanan->update([
+                'bukti_transfer' => $pathBukti,
+                'status'         => 'menunggu_validasi' // Berubah status
+            ]);
+        }
+
+        return redirect()->route('wisata.tiket-saya')->with('success', 'Pembayaran berhasil dikirim!');
+    }
+
+    // 5. Tampilkan Riwayat
     public function index()
     {
-        // Mengambil transaksi HANYA milik user yang sedang login
-        // with('wisata') digunakan agar kita bisa memunculkan nama wisata di halaman riwayat
-        $transaksis = Transaksi::with('wisata')
-            ->where('user_id', Auth::id())
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $riwayat_tiket = Transaksi::with('wisata')->where('user_id', Auth::id())->orderBy('created_at', 'desc')->get();
+        return view('pages.wisata.tiket-saya', compact('riwayat_tiket'));
+    }
 
-        return view('transaksi.riwayat', compact('transaksis'));
+    // 6. Tampilkan E-Ticket HTML (Jika Lunas)
+    public function eticket($kode_booking)
+    {
+        $tiket = Transaksi::with(['wisata', 'user'])->where('kode_booking', $kode_booking)->firstOrFail();
+        return view('pages.wisata.eticket', compact('tiket'));
     }
 }

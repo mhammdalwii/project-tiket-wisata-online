@@ -7,23 +7,32 @@ use Illuminate\Http\Request;
 
 class WisataController extends Controller
 {
-    // 1. Menampilkan Katalog Wisata (Halaman Utama)
-    public function index()
+    // 1. Halaman Beranda (Menampilkan 4 terbaru)
+    public function home()
     {
-        // Mengambil seluruh data wisata (nanti bisa diganti dengan paginasi jika sudah banyak)
-        $wisata = Wisata::all();
-
-        // Mengirim variabel $wisata ke view Blade yang akan dibuat teman Anda
-        return view('wisata.index', compact('wisata'));
+        $wisatas = Wisata::latest()->take(4)->get();
+        return view('pages.home', compact('wisatas'));
     }
 
-    // 2. Menampilkan Halaman Detail Spesifik
+    // 2. Halaman Katalog dengan Pencarian & Pagination
+    public function index(Request $request)
+    {
+        $query = Wisata::query();
+
+        if ($request->has('search') && $request->search != '') {
+            $query->where('nama_wisata', 'like', '%' . $request->search . '%');
+        }
+
+        $daftar_wisata = $query->latest()->paginate(8);
+        $daftar_wisata->appends($request->all());
+
+        return view('pages.wisata.index', compact('daftar_wisata'));
+    }
+
+    // 3. Halaman Detail
     public function show($id)
     {
-        // Mencari data berdasarkan ID. Jika ID tidak ditemukan, otomatis menampilkan halaman 404
         $wisata = Wisata::findOrFail($id);
-
-        // Mengirim variabel $wisata yang dipilih ke view detail
-        return view('wisata.show', compact('wisata'));
+        return view('pages.wisata.detail', compact('wisata'));
     }
 }

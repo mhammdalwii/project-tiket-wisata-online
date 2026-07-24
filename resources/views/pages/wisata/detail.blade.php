@@ -7,7 +7,7 @@
     <nav class="text-sm mb-6 text-gray-500 flex items-center space-x-2">
         <a href="{{ route('wisata.index') }}" class="hover:text-blue-600 transition font-medium">Katalog Wisata</a>
         <span>/</span>
-        <span class="text-gray-800 font-bold">{{ $wisata->nama }}</span>
+        <span class="text-gray-800 font-bold">{{ $wisata->nama_wisata }}</span>
     </nav>
 
     <!-- Hero / Banner Gambar (Visual Dummy) -->
@@ -28,7 +28,7 @@
 
             <!-- Judul & Jam Operasional -->
             <div>
-                <h1 class="text-3xl font-extrabold text-gray-900 mb-3">{{ $wisata->nama }}</h1>
+                <h1 class="text-3xl font-extrabold text-gray-900 mb-3">{{ $wisata->nama_wisata }}</h1>
                 <p class="text-blue-600 font-semibold flex items-center gap-1.5 bg-blue-50 w-fit px-3 py-1.5 rounded-md">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
@@ -67,7 +67,7 @@
             <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm sticky top-6">
                 <p class="text-gray-500 font-semibold mb-1 text-sm tracking-wide">Harga Tiket Masuk</p>
                 <div class="flex items-end gap-1 mb-6">
-                    <p class="text-4xl font-extrabold text-blue-700">Rp {{ number_format($wisata->harga, 0, ',', '.') }}</p>
+                    <p class="text-4xl font-extrabold text-blue-700">Rp {{ number_format($wisata->harga_tiket, 0, ',', '.') }}</p>
                     <p class="text-gray-500 font-medium mb-1">/orang</p>
                 </div>
 
