@@ -101,6 +101,11 @@ class TransaksiResource extends Resource
                     ->date('d M Y')
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('jumlah_tiket')
+                    ->label('Jumlah Tiket')
+                    ->numeric()
+                    ->sortable(),
+
                 Tables\Columns\TextColumn::make('total_harga')
                     ->money('IDR', locale: 'id')
                     ->sortable(),
